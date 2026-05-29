@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exergy-intelligence-engine"
+version = "0.1.0"
+description = "Exergy Kernel v0: reference-bound thermodynamic accounting, guards, ledger, and simulation."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Exergy Intelligence Engine contributors" }]
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7",
+    "hypothesis>=6",
+    "mypy>=1.8",
+    "pytest>=8",
+    "pytest-cov>=5",
+]
+
+[project.scripts]
+eie-simple-site = "eie.simulation.simple_site:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+eie = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.coverage.run]
+branch = true
+source = ["eie"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "def main\\(",
+]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/eie"]
+mypy_path = ["src"]
+strict = true
+warn_unreachable = true
+show_error_codes = true
+pretty = true
