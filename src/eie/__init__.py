@@ -4,4 +4,4 @@ from eie.exergy.kernel import ExergyKernelV0
 
 __all__ = ["ExergyKernelV0"]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
