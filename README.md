@@ -1,15 +1,12 @@
 # Exergy Intelligence Engine
 
-Exergy Intelligence Engine is a Python foundation for thermodynamic truth
-accounting. It does not create energy from nothing. It represents, audits, and
-checks useful-work potential relative to explicit reference states and system
-boundaries.
+A Python foundation for thermodynamic truth accounting. The engine represents,
+audits, and checks useful-work potential relative to explicit reference states
+and system boundaries. It does not create energy from nothing.
 
-The first deliverable is **Exergy Kernel v0**: a small, tested, advisory-only
-kernel for energy, exergy, entropy, quality, ledger, and guard calculations.
+## What Is Implemented (v0.2)
 
-## What Exergy Kernel v0 Implements
-
+### Exergy Kernel v0
 - Dynamic `ReferenceState` records with ambient temperature, pressure,
   confidence, validity windows, and optional grid/economic context.
 - Explicit `Boundary` records for asset, subsystem, site, fleet, and region
@@ -17,179 +14,191 @@ kernel for energy, exergy, entropy, quality, ledger, and guard calculations.
 - Typed physical schemas for electrical flows, thermal flows, cooling loads,
   chemical flows, battery state, thermal storage state, exergy flows, ledger
   entries, and loss fingerprints.
-- Core equations for:
-  - hot heat exergy above ambient,
-  - finite hot-stream exergy,
-  - cooling/refrigeration service exergy,
-  - real electrical exergy,
-  - service-derated electrical availability,
-  - battery stored exergy,
-  - stratified thermal storage exergy,
-  - energy balance residual,
-  - exergy balance residual.
-- Carrier-specific quality grading that does not treat `qX = X/E` as a
-  universal invariant.
+- Core equations: hot-heat exergy, finite hot-stream exergy, cooling service
+  exergy, real electrical exergy, service-derated electrical availability,
+  battery stored exergy, stratified thermal storage exergy, energy and exergy
+  balance residuals.
+- Carrier-specific quality grading.
 - Append-only audit ledger with residual checks.
-- Guard stack:
-  - `ReferenceGuard`,
-  - `BoundaryGuard`,
-  - `PhysicsGuard`,
-  - `FalseExergyGainGuard`.
-- A deterministic simple-site simulation with PV, battery, heat pump,
-  stratified thermal storage, building heat load, waste heat, ledger entries,
-  normal guard checks, and intentionally impossible accounting checks.
+- Guard stack: `ReferenceGuard`, `BoundaryGuard`, `PhysicsGuard`,
+  `FalseExergyGainGuard`.
+- Deterministic simple-site simulation (PV, battery, heat pump, thermal
+  storage, building load, waste heat).
 
-## What It Does Not Implement Yet
+### Chemical Exergy Models (`eie.chemical`)
+- Szargut 2005 reference environment (T₀ = 298.15 K, P₀ = 101 325 Pa) with
+  15 standard reference substances.
+- Pure-substance database (~35 entries) with Szargut standard chemical
+  exergies in J/mol and J/kg.
+- Beta-factor correlations for liquid fuels (Szargut eq. 4.7) and solid fuels
+  (Szargut eq. 4.5), using mass ratios H/C, O/C, S/C, N/C.
+- Gaseous mixture exergy via mole-fraction weighting plus ideal mixing term.
+- Separation and mixing exergy: KL-divergence formulation, desalination
+  minimum work (osmotic-pressure integral model), CO₂ capture minimum work.
+- `ChemicalReaction` with ΔG°, van 't Hoff equilibrium constant, spontaneity
+  check, and exergy efficiency limit.
+- 8 pre-built reactions: methane combustion, hydrogen combustion, CO
+  combustion, steam methane reforming, water-gas shift, calcination,
+  Haber-Bosch, glucose oxidation.
+- 6 model classes (`PureSubstanceModel`, `BetaFactorLiquidModel`,
+  `BetaFactorSolidModel`, `GaseousMixtureModel`, `ReactionExergyModel`, and
+  the abstract `ChemicalExergyModel`).
+- Pre-built fuel instances: natural gas (UK mix), biogas (AD), syngas (coal),
+  hydrogen, methane, diesel, gasoline, ethanol, wood pellet biomass.
+- `ExergyKernelV0.chemical_flow()` integration.
+
+### Advisory Shadow Optimizer (`eie.optimization`)
+- `OptimizationObjective` with minimise/maximise direction, weight, and
+  normalisation.
+- `pareto_nondominated()` Pareto frontier extraction.
+- `DispatchVariable`, `DispatchSpace`, and `DispatchDecision` schemas; all
+  decisions carry `is_advisory=True` and are guard-verified before admission.
+- `SiteSnapshot` capturing the instantaneous physical site state (PV, battery,
+  thermal storage, heat pump, building load, grid constraints).
+- Guard-gated evaluator: `simulate_dispatch()` runs the full physics model and
+  all four guards; any failing candidate is unconditionally rejected with
+  no relax-constraints mode.
+- `ShadowOptimizer`: discrete grid search O(n^k) + Pareto filtering +
+  coordinate-descent bisection refinement; `guard_bypass_count = 0` is an
+  enforced invariant.
+- Default 5-objective set: exergy destruction, exergy efficiency, marginal
+  carbon, operating cost, battery SOC.
+
+### Schema Versioning (`eie.schema`)
+- `SemanticVersion` with ordering, parsing, `bump_major/minor/patch`, and
+  compatibility predicates.
+- `FieldDeclaration` with `added_in`, `deprecated_in`, `removed_in` lifecycle
+  tracking.
+- `SchemaDeclaration` with `validate_record()`.
+- `SchemaRegistry` with BFS migration-path finding.
+- `SchemaMigrator`: immutable `VersionedRecord` migration — corrections are
+  new entries, not silent overwrites.
+- `SchemaChangelog`: append-only, breaking-change detection, `since()` queries.
+- Domain schemas for all 7 EIE objects (LedgerEntry, ExergyFlow,
+  ReferenceState, Boundary, ChemicalFlow, BatteryState, ThermalStorageState)
+  through v0.3.0, with pre-built migration rules.
+
+## What Is Not Implemented
 
 - No direct PLC, SCADA, relay, inverter, valve, or other hardware actuation.
 - No autonomous critical-load dispatch.
-- No reinforcement learning.
-- No fleet market coordination.
-- No hydrogen safety automation.
-- No black-start automation.
+- No reinforcement learning or fleet market coordination.
+- No hydrogen safety automation or black-start automation.
 - No cloud orchestration.
-- No full chemical exergy library beyond an explicit model-bound chemical flow
-  schema.
-- No automatic unit conversion. Unknown or mismatched units should fail instead
-  of being guessed. The registered dimensional unit engine supports explicit
-  scale-only conversions between compatible units such as `kW` to `W` and
-  `kWh` to `J`.
+- No automatic unit conversion; unknown or mismatched units fail explicitly.
+- No formal value-of-information logic for sensor placement.
+- No exergoeconomic, exergoenvironmental, or lifecycle ledgers.
 
-## Important Scientific Limitations
+## Scientific Limitations
 
-- This is not a free-energy system.
 - Energy is conserved; the kernel accounts for useful-work potential, not
   energy creation.
-- Exergy depends on a reference environment. A value without a
-  `reference_state_id` is invalid.
-- Boundary definition matters. A value without a `boundary_id` is invalid.
-- Raw equation functions are transparent numerical primitives. Auditable
-  exergy records should be created through boundary/reference-bound schemas,
-  `ExergyKernelV0`, or ledger entries.
-- `qX` is carrier-specific and denominator-specific. It is not a universal
+- Every exergy value must be bound to an explicit `reference_state_id` and
+  `boundary_id`.
+- `qX` is carrier-specific and denominator-specific; it is not a universal
   invariant.
-- Hot heat and cooling are separate thermodynamic services and use separate
-  functions.
+- Hot heat and cooling are separate thermodynamic services.
 - Chemical exergy is model-specific and reference-environment-specific.
-- Stratified thermal storage is integrated layer by layer; v0 does not use an
-  average-temperature shortcut by default.
-- Electrical real power is high-grade exergy, while voltage/frequency/harmonic
-  derating is tracked as service usability rather than pure thermodynamic
-  exergy destruction.
-- Guard results are advisory evidence. They do not certify a real physical
+- Stratified thermal storage is integrated layer by layer.
+- Electrical voltage/frequency/harmonic derating is tracked as service
+  usability, not pure thermodynamic exergy destruction.
+- Guard results are advisory evidence; they do not certify a physical
   installation.
 
 ## Scientific Assumptions
 
-- SI inputs are used by the core equations.
-- Hot-heat exergy uses `Xdot = (1 - T0 / T) * Qdot` for a thermal reservoir
-  above the reference temperature.
-- Finite hot-stream exergy uses constant heat capacity:
-  `Xdot = m_dot * cp * [(Tin - Tout) - T0 * ln(Tin / Tout)]`.
-- Cooling service exergy uses reversible minimum work:
-  `Wmin = Qc * (T0 / Tc - 1)` for `Tc < T0`.
-- Electrical real power is treated as approximately equal to available
-  electrical work.
-- Battery stored exergy is approximated as stored energy times an availability
-  factor.
-- Exergy destruction is related to entropy generation with
-  `X_destroyed = T0 * S_generated` under the ordinary engineering assumptions
-  of a defined control volume and reference environment.
-- Real deployments must set tolerances from measured uncertainty,
-  commissioning data, manufacturer limits, and site hazard analysis.
+- SI inputs throughout.
+- Hot-heat exergy: `Ẋ = (1 − T₀/T) · Q̇` (thermal reservoir above T₀).
+- Finite hot-stream exergy: `Ẋ = ṁ cₚ [(Tᵢₙ − Tₒᵤₜ) − T₀ ln(Tᵢₙ/Tₒᵤₜ)]`.
+- Cooling service exergy: `Wₘᵢₙ = Qc · (T₀/Tc − 1)` for Tc < T₀.
+- Electrical real power ≈ available electrical work.
+- Battery stored exergy ≈ stored energy × availability factor.
+- Exergy destruction: `X_destroyed = T₀ · S_generated`.
+- Chemical exergy: Szargut 2005 standard-state reference environment.
+- Beta correlations use mass ratios (kg/kg), not molar ratios.
+- Desalination minimum work: osmotic-pressure integral model.
 
 ## Safety Limitations
 
-- v0 is simulation/advisory only.
-- v0 has no hardware control API.
+- v0 is simulation and advisory only; it has no hardware control API.
 - Optimizers, learning systems, markets, or fleet logic must not bypass guards.
-- Failed reference, boundary, physics, or false-gain checks should block any
+- Failed reference, boundary, physics, or false-gain checks must block any
   downstream decision that could affect equipment or safety.
 - Safety thresholds for real assets must come from engineering design limits,
   manufacturer documentation, codes, standards, commissioning tests, and hazard
   analysis.
-- This repository does not certify compliance with electrical, pressure,
+- This repository does not certify compliance with any electrical, pressure,
   thermal, chemical, hydrogen, battery, industrial-control, or cybersecurity
-  standards.
+  standard.
 
 ## Install
 
-From the repository root:
-
-```powershell
+```bash
 python -m pip install -e ".[dev]"
-```
-
-If your shell requires quoting differently:
-
-```powershell
-python -m pip install -e . coverage hypothesis mypy pytest pytest-cov
 ```
 
 ## Run Tests
 
-```powershell
+```bash
 python -m pytest
 ```
 
-## Coverage Reporting
+## Coverage Report
 
-```powershell
-python -m pytest --cov=eie --cov-report=term-missing --cov-report=xml
+```bash
+python -m pytest --cov=eie --cov-report=term-missing
 ```
 
-The configured coverage gate is 90% branch-aware coverage.
+Coverage gate: 90% branch-aware.
 
 ## Static Type Checks
 
-```powershell
+```bash
 python -m mypy
 ```
 
-Mypy checks the source package in strict mode and the package includes
-`py.typed`.
+Strict mode; the package ships `py.typed`.
 
 ## Run Simple Simulation
 
-```powershell
+```bash
 python examples/run_simple_site.py
 ```
 
-or, after editable install:
+or after editable install:
 
-```powershell
+```bash
 eie-simple-site
 ```
 
-The simulation prints a concise report and verifies that the normal accounting
-case passes guards while the intentionally impossible case fails closed.
-
 ## Repository Layout
 
-```text
+```
 src/eie/
-  core/        constants, enums, errors, tolerances, units
-  reference/   reference state and freshness validation
-  boundary/    explicit accounting boundaries
-  flows/       typed physical flow and storage schemas
-  exergy/      equations, quality models, and ExergyKernelV0
-  ledger/      append-only accounting records and audit checks
-  guards/      reference, boundary, physics, and false-gain guards
-  simulation/  simple deterministic site simulation
-tests/         pytest, coverage, and property-based tests
-examples/      runnable example entrypoint
+  core/          constants, enums, errors, tolerances, units
+  reference/     reference state and freshness validation
+  boundary/      explicit accounting boundaries
+  flows/         typed physical flow and storage schemas
+  exergy/        equations, quality models, ExergyKernelV0
+  ledger/        append-only accounting records and audit checks
+  guards/        reference, boundary, physics, and false-gain guards
+  simulation/    simple deterministic site simulation
+  chemical/      chemical exergy models, reactions, mixing, fuel database
+  optimization/  advisory shadow optimizer, dispatch decisions, Pareto search
+  schema/        schema versioning, migration, changelog, domain declarations
+tests/           pytest, coverage, and property-based tests
+examples/        runnable example entrypoints
 ```
 
 ## Roadmap
 
-1. Add explicit schema versioning and event-sourced persistence.
-2. Expand the strict dimensional-consistency engine with audited offset
-   temperature handling only if it is genuinely needed.
-3. Add time synchronization quality and stale telemetry handling.
-4. Expand carrier-specific exergy models for chemical, pressure, radiative, and
-   mechanical flows.
+1. ~~Add explicit schema versioning and event-sourced persistence.~~ *(done in v0.2)*
+2. Expand the dimensional-consistency engine with audited offset temperature
+   handling if genuinely needed.
+3. Add time synchronisation quality and stale telemetry handling.
+4. ~~Expand carrier-specific exergy models for chemical flows.~~ *(done in v0.2)*
 5. Add formal value-of-information logic for sensor placement.
 6. Add exergoeconomic, exergoenvironmental, and lifecycle ledgers.
-7. Add shadow-mode advisory optimization that cannot act before guard checks.
+7. ~~Add shadow-mode advisory optimization that cannot act before guard checks.~~ *(done in v0.2)*
 8. Add commissioning workflows and evidence storage before considering any
    controlled physical deployment.

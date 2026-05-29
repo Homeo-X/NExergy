@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exergy-intelligence-engine"
-version = "0.1.0"
-description = "Exergy Kernel v0: reference-bound thermodynamic accounting, guards, ledger, and simulation."
+version = "0.2.0"
+description = "Exergy Intelligence Engine: thermodynamic accounting, chemical exergy models, advisory optimizer, and schema versioning."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [{ name = "Exergy Intelligence Engine contributors" }]
