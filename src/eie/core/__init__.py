@@ -17,6 +17,7 @@ from eie.core.errors import (
     StaleReferenceError,
     UnitError,
 )
+from eie.core.sensor import SensorIngestionPipeline, SensorReading
 from eie.core.temperature import (
     AuditedTemperatureConverter,
     ConversionRecord,
@@ -53,6 +54,8 @@ from eie.core.units import (
 
 __all__ = [
     "AuditedTemperatureConverter",
+    "SensorIngestionPipeline",
+    "SensorReading",
     "BoundaryError",
     "BoundaryType",
     "CARBON_INTENSITY",

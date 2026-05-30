@@ -16,6 +16,7 @@ from math import isfinite
 
 from eie.boundary.boundary import Boundary
 from eie.core.errors import BoundaryError, DomainError, MissingReferenceError
+from eie.core.temperature import require_ratio_temperature
 from eie.flows.base import require_non_negative, require_probability
 from eie.flows.storage import BatteryState, ThermalLayer, ThermalStorageState
 from eie.reference.state import ReferenceState
@@ -149,7 +150,7 @@ class SiteSnapshot:
         require_non_negative(self.building_electric_load_w, "building_electric_load_w")
         _require_positive_finite(self.heat_pump_rated_cop, "heat_pump_rated_cop")
         _require_positive_finite(self.heat_pump_max_power_w, "heat_pump_max_power_w")
-        _require_positive_finite(self.delivered_heat_temperature_k, "delivered_heat_temperature_k")
+        require_ratio_temperature(self.delivered_heat_temperature_k, "delivered_heat_temperature_k")
         require_non_negative(self.heat_demand_w, "heat_demand_w")
 
     @property

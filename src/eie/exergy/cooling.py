@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from eie.core.temperature import require_ratio_temperature
 from eie.flows.base import require_non_negative, require_positive
 
 
@@ -20,8 +21,8 @@ def cooling_service_exergy_rate(
     """
 
     require_non_negative(cooling_rate_w, "cooling_rate_w")
-    require_positive(cold_temperature_k, "cold_temperature_k")
-    require_positive(reference_temperature_k, "reference_temperature_k")
+    require_ratio_temperature(cold_temperature_k, "cold_temperature_k")
+    require_ratio_temperature(reference_temperature_k, "reference_temperature_k")
     if cooling_rate_w == 0.0 or cold_temperature_k >= reference_temperature_k:
         return 0.0
     return cooling_rate_w * (reference_temperature_k / cold_temperature_k - 1.0)

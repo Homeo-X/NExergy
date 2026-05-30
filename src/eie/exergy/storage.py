@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from eie.core.temperature import require_ratio_temperature
 from eie.exergy.cooling import cooling_service_exergy_rate
 from eie.exergy.heat import heat_exergy_rate
 from eie.flows.base import require_non_negative, require_positive, require_probability
@@ -50,7 +51,7 @@ def thermal_storage_exergy_breakdown(
 ) -> ThermalStorageExergyBreakdown:
     """Integrate exergy layer by layer without average-temperature shortcuts."""
 
-    require_positive(reference_temperature_k, "reference_temperature_k")
+    require_ratio_temperature(reference_temperature_k, "reference_temperature_k")
     hot = 0.0
     cold = 0.0
     for raw_layer in layers:
