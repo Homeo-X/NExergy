@@ -27,3 +27,13 @@ class StaleReferenceError(ValueError, ExergyKernelError):
 
 class PhysicsViolationError(ValueError, ExergyKernelError):
     """Raised when accounting violates a hard physics invariant."""
+
+
+class OffsetScaleError(UnitError):
+    """Raised when an offset-scale temperature (°C, °F) is used where Kelvin is required.
+
+    Celsius and Fahrenheit are interval scales — their zero points are
+    arbitrary offsets, so ratios of their values are physically meaningless.
+    Exergy equations require absolute (ratio-scale) temperatures in Kelvin.
+    Use AuditedTemperatureConverter.to_kelvin() to convert with provenance.
+    """
