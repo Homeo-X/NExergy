@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from eie.core.temperature import require_ratio_temperature
 from eie.core.units import POWER
 from eie.flows.base import Metadata, require_binding, require_non_negative, require_positive
 
@@ -23,6 +24,6 @@ class CoolingLoad:
         if not self.load_id:
             raise ValueError("load_id is required")
         require_non_negative(self.cooling_rate_w, "cooling_rate_w")
-        require_positive(self.cold_temperature_k, "cold_temperature_k")
+        require_ratio_temperature(self.cold_temperature_k, "cold_temperature_k")
         require_binding(self.boundary_id, self.reference_state_id)
         self.metadata.require_dimension(POWER)

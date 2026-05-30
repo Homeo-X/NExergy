@@ -5,6 +5,7 @@ from __future__ import annotations
 from math import isclose, log
 
 from eie.core.errors import DomainError
+from eie.core.temperature import require_ratio_temperature
 from eie.core.tolerance import DEFAULT_TOLERANCE, Tolerance
 from eie.flows.base import require_non_negative, require_positive
 
@@ -31,8 +32,8 @@ def heat_exergy_rate(
     """
 
     require_non_negative(heat_rate_w, "heat_rate_w")
-    require_positive(source_temperature_k, "source_temperature_k")
-    require_positive(reference_temperature_k, "reference_temperature_k")
+    require_ratio_temperature(source_temperature_k, "source_temperature_k")
+    require_ratio_temperature(reference_temperature_k, "reference_temperature_k")
     if isclose(source_temperature_k, reference_temperature_k, abs_tol=tolerance.temperature_k):
         return 0.0
     if source_temperature_k < reference_temperature_k:
@@ -63,9 +64,9 @@ def finite_stream_heat_exergy_rate(
 
     require_non_negative(mass_flow_kg_s, "mass_flow_kg_s")
     require_non_negative(cp_j_kg_k, "cp_j_kg_k")
-    require_positive(t_in_k, "t_in_k")
-    require_positive(t_out_k, "t_out_k")
-    require_positive(reference_temperature_k, "reference_temperature_k")
+    require_ratio_temperature(t_in_k, "t_in_k")
+    require_ratio_temperature(t_out_k, "t_out_k")
+    require_ratio_temperature(reference_temperature_k, "reference_temperature_k")
     if mass_flow_kg_s == 0.0 or cp_j_kg_k == 0.0:
         return 0.0
     if t_in_k < t_out_k - tolerance.temperature_k:

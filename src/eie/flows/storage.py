@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from eie.core.temperature import require_ratio_temperature
 from eie.core.units import ENERGY
 from eie.flows.base import (
     Metadata,
@@ -48,7 +49,7 @@ class ThermalLayer:
     energy_j: float
 
     def __post_init__(self) -> None:
-        require_positive(self.temperature_k, "temperature_k")
+        require_ratio_temperature(self.temperature_k, "temperature_k")
         require_non_negative(self.energy_j, "energy_j")
 
 

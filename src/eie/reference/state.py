@@ -8,6 +8,7 @@ from math import isfinite
 
 from eie.core.constants import STANDARD_ATMOSPHERE_PA, STANDARD_AMBIENT_TEMPERATURE_K
 from eie.core.errors import DomainError
+from eie.core.temperature import require_ratio_temperature
 from eie.core.tolerance import DEFAULT_TOLERANCE, Tolerance
 
 
@@ -52,13 +53,13 @@ class ReferenceState:
         if not self.reference_state_id:
             raise DomainError("reference_state_id is required")
         _require_datetime(self.timestamp, "timestamp")
-        _require_positive_finite(self.ambient_temperature_k, "ambient_temperature_k")
+        require_ratio_temperature(self.ambient_temperature_k, "ambient_temperature_k")
         _require_positive_finite(self.ambient_pressure_pa, "ambient_pressure_pa")
         _require_probability(self.confidence, "confidence")
         if self.relative_humidity is not None:
             _require_probability(self.relative_humidity, "relative_humidity")
         if self.sky_temperature_k is not None:
-            _require_positive_finite(self.sky_temperature_k, "sky_temperature_k")
+            require_ratio_temperature(self.sky_temperature_k, "sky_temperature_k")
         if self.nominal_grid_voltage_v is not None:
             _require_positive_finite(self.nominal_grid_voltage_v, "nominal_grid_voltage_v")
         if self.nominal_grid_frequency_hz is not None:
