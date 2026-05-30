@@ -12,7 +12,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from math import isfinite
 
-from eie.core.errors import UnitError
+from eie.core.errors import OffsetScaleError, UnitError
 
 
 @dataclass(frozen=True)
@@ -101,6 +101,7 @@ class UnitDefinition:
     dimension: Dimension
     scale_to_si: float
     description: str
+    is_offset_scale: bool = False
 
     def __post_init__(self) -> None:
         if not self.symbol:
@@ -119,6 +120,16 @@ UNIT_REGISTRY: dict[str, UnitDefinition] = {
     "min": UnitDefinition("min", TIME, 60.0, "minute"),
     "h": UnitDefinition("h", TIME, 3_600.0, "hour"),
     "K": UnitDefinition("K", TEMPERATURE, 1.0, "kelvin absolute temperature"),
+    # Offset-scale temperatures — interval scales; ratios are physically meaningless.
+    # convert_value() refuses these; use AuditedTemperatureConverter instead.
+    "°C": UnitDefinition("°C", TEMPERATURE, 1.0, "degree Celsius (offset interval scale)", is_offset_scale=True),
+    "degC": UnitDefinition("degC", TEMPERATURE, 1.0, "degree Celsius ASCII alias (offset interval scale)", is_offset_scale=True),
+    "°F": UnitDefinition("°F", TEMPERATURE, 5.0 / 9.0, "degree Fahrenheit (offset interval scale)", is_offset_scale=True),
+    "degF": UnitDefinition("degF", TEMPERATURE, 5.0 / 9.0, "degree Fahrenheit ASCII alias (offset interval scale)", is_offset_scale=True),
+    # Temperature differences — ratio-safe; ΔK = Δ°C, ΔK = Δ°F × 5/9.
+    "ΔK": UnitDefinition("ΔK", TEMPERATURE, 1.0, "kelvin temperature difference (ratio-safe)"),
+    "Δ°C": UnitDefinition("Δ°C", TEMPERATURE, 1.0, "Celsius temperature difference (ratio-safe)"),
+    "Δ°F": UnitDefinition("Δ°F", TEMPERATURE, 5.0 / 9.0, "Fahrenheit temperature difference (ratio-safe)"),
     "A": UnitDefinition("A", CURRENT, 1.0, "ampere"),
     "J": UnitDefinition("J", ENERGY, 1.0, "joule"),
     "kJ": UnitDefinition("kJ", ENERGY, 1.0e3, "kilojoule"),
@@ -244,12 +255,27 @@ def compatible_units(left_unit: str, right_unit: str) -> bool:
     return dimension_for_unit(left_unit) == dimension_for_unit(right_unit)
 
 
-def convert_value(value: float, from_unit: str, to_unit: str) -> float:
-    """Convert a finite value between registered scale-compatible units."""
+def is_offset_scale_unit(unit: str) -> bool:
+    """Return True if unit is an offset-scale temperature (°C, °F)."""
+    defn = UNIT_REGISTRY.get(unit)
+    return defn is not None and defn.is_offset_scale
 
+
+def convert_value(value: float, from_unit: str, to_unit: str) -> float:
+    """Convert a finite value between registered scale-compatible units.
+
+    Raises OffsetScaleError if either unit is an offset-scale temperature
+    (°C, °F).  Use AuditedTemperatureConverter for those conversions.
+    """
     if not isfinite(value):
         raise UnitError("value must be finite")
     require_same_dimension(from_unit, to_unit)
+    if is_offset_scale_unit(from_unit) or is_offset_scale_unit(to_unit):
+        raise OffsetScaleError(
+            f"cannot use scale-only convert_value for offset-scale temperature units "
+            f"({from_unit!r} → {to_unit!r}); "
+            f"use AuditedTemperatureConverter.to_kelvin() instead"
+        )
     return value * scale_to_si(from_unit) / scale_to_si(to_unit)
 
 
